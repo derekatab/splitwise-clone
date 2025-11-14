@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { convertToCAD } from '@/lib/utils/currencyConversion';
+import { convertToCAD, refreshExchangeRates } from '@/lib/utils/currencyConversion';
 import { logAuditTrailEntry } from '@/lib/utils/auditTrail';
 import { Prisma } from '@prisma/client';
 
@@ -46,6 +46,21 @@ export async function POST(request: NextRequest) {
         { error: 'Access denied' },
         { status: 403 }
       );
+    }
+
+    // Refresh exchange rates if this is a new currency
+    if (originalCurrency !== 'CAD') {
+      const existingRate = await prisma.exchangeRateCache.findUnique({
+        where: { currency: originalCurrency },
+      });
+
+      if (!existingRate) {
+        try {
+          await refreshExchangeRates();
+        } catch (error) {
+          console.error('Failed to refresh rates, continuing with conversion:', error);
+        }
+      }
     }
 
     // Convert to CAD

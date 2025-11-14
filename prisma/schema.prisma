@@ -116,3 +116,13 @@ model DeviceInvite {
   accepted  Boolean  @default(false)
   acceptedAt DateTime?
 }
+
+model ExchangeRateCache {
+  id        String   @id @default(cuid())
+  currency  String   @unique
+  rate      Float    // Rate to CAD
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
