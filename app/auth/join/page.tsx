@@ -85,7 +85,9 @@ function JoinTripContent() {
           <div className="text-center mb-8">
             <div className="w-14 h-14 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h-2m0 0H9m3 0V8m0 2v2m0-6h4a2 2 0 012 2v4a2 2 0 01-2 2h-4V4zm0 0H8a2 2 0 00-2 2v4a2 2 0 002 2h4V4z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C8.686 2 6 4.686 6 8c0 4 6 12 6 12s6-8 6-12c0-3.314-2.686-6-6-6z" />
+                <circle cx="12" cy="8" r="2.2" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v4M10 8h4" />
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">Join Trip</h1>

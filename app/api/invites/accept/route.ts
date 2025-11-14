@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { generateDeviceId } from '@/lib/utils/deviceTracking';
 import { logAuditTrailEntry } from '@/lib/utils/auditTrail';
 
 export async function POST(request: NextRequest) {
   try {
     const { token, name, email } = await request.json();
-    const deviceId = request.cookies.get('deviceId')?.value;
-
-    if (!deviceId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const deviceId = request.cookies.get('deviceId')?.value || generateDeviceId();
 
     // Find invite - search by token
     const invite = await prisma.deviceInvite.findUnique({

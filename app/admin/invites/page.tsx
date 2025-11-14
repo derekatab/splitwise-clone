@@ -582,13 +582,13 @@ export default function AdminInvites() {
                       Email Addresses <span className="text-red-400">*</span>
                     </label>
                     <p className="text-xs text-slate-400 mb-3">
-                      Enter one email per line or separate by commas
+                      Enter emails separated by commas
                     </p>
                     <textarea
                       value={emails}
                       onChange={(e) => setEmails(e.target.value)}
-                      placeholder="email1@example.com&#10;email2@example.com&#10;email3@example.com"
-                      rows={6}
+                      placeholder="email1@example.com, email2@example.com, email3@example.com"
+                      rows={3}
                       className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none resize-none font-mono text-sm"
                     />
                   </div>
