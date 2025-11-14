@@ -102,7 +102,7 @@ export default function AddExpense() {
 
                 const data = await res.json();
                 const cadRate = data.rate;
-                const converted = numAmount * cadRate;
+                const converted = numAmount / cadRate;
 
                 setExchangeRate(cadRate);
                 setConvertedAmount(converted);
@@ -163,6 +163,11 @@ export default function AddExpense() {
     return Math.max(0, numAmount - getTotalAllocated());
   };
 
+  const getRatioTotal = () => {
+    return splits.reduce((sum, s) => sum + (s.ratio || 0), 0);
+  };
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -182,47 +187,48 @@ export default function AddExpense() {
         throw new Error('Split amounts must equal the total expense');
       }
 
+      if (splitType === 'ratio') {
+        const ratioTotal = getRatioTotal();
+        if (Math.abs(ratioTotal - 1) > 0.01) {
+            throw new Error(`Ratios must sum to 1.00 (currently ${ratioTotal.toFixed(2)})`);
+        }
+      }
+
       // Prepare splits based on split type
       let finalSplits: any[] = [];
 
       if (splitType === 'equal') {
-        const perPerson = numAmount / members.length;
+        const perPersonOriginal = numAmount / members.length;
+        const perPersonCAD = perPersonOriginal / (exchangeRate || 1);
         finalSplits = members.map((member) => ({
-          userId: member.user.id,
-          amountCAD: parseFloat(
-            (currency === 'CAD' ? perPerson : perPerson * (exchangeRate || 1)).toFixed(2)
-          ),
-          splitType: 'equal',
+            userId: member.user.id,
+            amountCAD: parseFloat(perPersonCAD.toFixed(2)),
+            splitType: 'equal',
         }));
       } else if (splitType === 'ratio') {
-        const totalRatio = splits.reduce((sum, s) => sum + (s.ratio || 0), 0);
-        if (totalRatio === 0) throw new Error('Please set ratios for all members');
-
+        const totalRatio = getRatioTotal();
         finalSplits = splits.map((split) => {
-          const ratio = split.ratio || 0;
-          const splitAmount = (numAmount * ratio) / totalRatio;
-          return {
-            userId: split.userId,
-            amountCAD: parseFloat(
-              (currency === 'CAD' ? splitAmount : splitAmount * (exchangeRate || 1)).toFixed(2)
-            ),
-            splitType: 'ratio',
-            ratio,
-          };
+            const ratio = split.ratio || 0;
+            const splitAmountOriginal = (numAmount * ratio) / totalRatio;
+            const splitAmountCAD = splitAmountOriginal / (exchangeRate || 1);
+            return {
+                userId: split.userId,
+                amountCAD: parseFloat(splitAmountCAD.toFixed(2)),
+                splitType: 'ratio',
+                ratio,
+            };
         });
       } else if (splitType === 'amount') {
         finalSplits = splits
-          .filter((split) => typeof split.amount === 'number' && split.amount > 0)
-          .map((split) => {
-            const originalAmt = split.amount ?? 0;
-            const rate = exchangeRate ?? 1;
-            const amountInCAD = currency === 'CAD' ? originalAmt : originalAmt * rate;
+            .filter((split) => typeof split.amount === 'number' && split.amount > 0)
+            .map((split) => {
+            const amountCAD = (split.amount ?? 0) / (exchangeRate || 1);
             return {
-              userId: split.userId,
-              amountCAD: parseFloat(amountInCAD.toFixed(2)),
-              splitType: 'amount',
+                userId: split.userId,
+                amountCAD: parseFloat(amountCAD.toFixed(2)),
+                splitType: 'amount',
             };
-          });
+        });
       }
 
       const res = await fetch('/api/expenses/add', {
@@ -341,16 +347,16 @@ export default function AddExpense() {
               {/* Currency Conversion Notice */}
               {showConversionConfirm && currency !== 'CAD' && exchangeRate && convertedAmount && (
                 <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-4">
-                  <p className="text-blue-300 font-semibold mb-2">Currency Conversion</p>
-                  <p className="text-blue-200 text-sm">
+                    <p className="text-blue-300 font-semibold mb-2">Currency Conversion</p>
+                    <p className="text-blue-200 text-sm">
                     {amount} {currency} = ${convertedAmount.toFixed(2)} CAD
-                  </p>
-                  <p className="text-blue-200 text-xs mt-2 opacity-75">
-                    Exchange Rate: 1 {currency} = ${exchangeRate.toFixed(6)} CAD
-                  </p>
-                  <p className="text-blue-200 text-xs mt-3">
+                    </p>
+                    <p className="text-blue-200 text-xs mt-2 opacity-75">
+                    Exchange Rate: 1 {currency} = ${(1 / exchangeRate).toFixed(6)} CAD
+                    </p>
+                    <p className="text-blue-200 text-xs mt-3">
                     ✓ All amounts will be displayed in CAD
-                  </p>
+                    </p>
                 </div>
               )}
             </div>
@@ -384,82 +390,104 @@ export default function AddExpense() {
           </div>
 
           {/* Split Details */}
-          <div className="bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-700">
+            <div className="bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-700">
             <h2 className="text-xl font-bold text-white mb-6">Split Details</h2>
 
             <div className="space-y-4">
-              {members.map((member) => {
+                {members.map((member, index) => {
                 const split = splits.find((s) => s.userId === member.user.id);
                 const numAmount = parseFloat(amount) || 0;
 
                 return (
-                  <div
+                    <div
                     key={member.user.id}
                     className="flex items-center justify-between bg-slate-700/50 p-4 rounded-lg border border-slate-600"
-                  >
+                    >
                     <div className="flex-1">
-                      <p className="text-white font-semibold">{member.user.name}</p>
-                      <p className="text-xs text-slate-400">{member.user.email}</p>
+                        <p className="text-white font-semibold">{member.user.name}</p>
+                        <p className="text-xs text-slate-400">{member.user.email}</p>
                     </div>
 
                     {splitType === 'equal' && (
-                      <div className="text-right">
+                        <div className="text-right">
                         <p className="text-indigo-400 font-semibold">
-                          ${(numAmount / members.length).toFixed(2)}
+                            ${((numAmount / members.length) / (exchangeRate || 1)).toFixed(2)} CAD
                         </p>
-                      </div>
+                        </div>
                     )}
 
                     {splitType === 'ratio' && (
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={split?.ratio || 0}
-                        onChange={(e) => updateSplitRatio(member.user.id, parseFloat(e.target.value) || 0)}
-                        placeholder="Ratio"
-                        className="w-24 px-3 py-2 bg-slate-600 border border-slate-500 rounded text-white placeholder-slate-400 text-right text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                      />
+                        <div className="flex gap-2 items-center">
+                            <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={split?.ratio || 0}
+                            onChange={(e) => {
+                                const newRatio = parseFloat(e.target.value) || 0;
+                                updateSplitRatio(member.user.id, newRatio);
+                            }}
+                            placeholder="Ratio"
+                            className="w-20 px-3 py-2 bg-slate-600 border border-slate-500 rounded text-white placeholder-slate-400 text-right text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                            <span className="text-xs text-slate-400 w-12 text-right">
+                            ${((numAmount * (split?.ratio || 0)) / (getRatioTotal() || 1) / (exchangeRate || 1)).toFixed(2)} CAD
+                            </span>
+                        </div>
                     )}
 
                     {splitType === 'amount' && (
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max={numAmount}
-                        value={split?.amount || 0}
-                        onChange={(e) => updateSplitAmount(member.user.id, parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                        className="w-28 px-3 py-2 bg-slate-600 border border-slate-500 rounded text-white placeholder-slate-400 text-right text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                      />
+                        <div className="flex gap-2 items-center">
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={split?.amount || 0}
+                            onChange={(e) => updateSplitAmount(member.user.id, parseFloat(e.target.value) || 0)}
+                            placeholder="0.00"
+                            className="w-20 px-3 py-2 bg-slate-600 border border-slate-500 rounded text-white placeholder-slate-400 text-right text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                        <span className="text-xs text-slate-400 w-16 text-right">
+                            ${((split?.amount || 0) / (exchangeRate || 1)).toFixed(2)} CAD
+                        </span>
+                        </div>
                     )}
-                  </div>
+                    </div>
                 );
-              })}
+                })}
             </div>
 
             {/* Unallocated Amount for Manual Split */}
             {splitType === 'amount' && amount && (
-              <div className="mt-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                <div className="mt-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
                 <div className="flex justify-between items-center">
-                  <p className="text-slate-300 font-semibold">Unallocated:</p>
-                  <p
+                    <p className="text-slate-300 font-semibold">Unallocated (CAD):</p>
+                    <p
                     className={`text-lg font-bold ${
-                      getUnallocated() > 0 ? 'text-yellow-400' : 'text-green-400'
+                        getUnallocated() > 0 ? 'text-yellow-400' : 'text-green-400'
                     }`}
-                  >
-                    ${getUnallocated().toFixed(2)}
-                  </p>
+                    >
+                    ${(getUnallocated() / (exchangeRate || 1)).toFixed(2)}
+                    </p>
                 </div>
                 <p className="text-xs text-slate-400 mt-2">
-                  {getUnallocated() > 0
+                    {getUnallocated() > 0
                     ? 'Allocate the remaining amount above'
                     : '✓ All amount allocated'}
                 </p>
-              </div>
+                </div>
             )}
-          </div>
+
+            {/* Ratio validation warning */}
+            {splitType === 'ratio' && (
+                <div className="mt-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                    <p className="text-slate-300 font-semibold text-sm">Ratio Total: {getRatioTotal().toFixed(2)}/1.00</p>
+                    {Math.abs(getRatioTotal() - 1) > 0.01 && (
+                    <p className="text-xs text-red-400 mt-2">⚠️ Ratios must sum to exactly 1.00 to submit</p>
+                    )}
+                </div>
+            )}
+            </div>
 
           {/* Error Message */}
           {error && (

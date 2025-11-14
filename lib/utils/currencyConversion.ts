@@ -53,12 +53,10 @@ export async function convertToCAD(
   }
 
   try {
-    // Check if rate exists in cache
     let cachedRate = await prisma.exchangeRateCache.findUnique({
       where: { currency: fromCurrency },
     });
 
-    // If no cached rate, fetch all rates from API
     if (!cachedRate) {
       await fetchAndCacheRates(fromCurrency);
       cachedRate = await prisma.exchangeRateCache.findUnique({
@@ -70,7 +68,8 @@ export async function convertToCAD(
       throw new Error(`Currency ${fromCurrency} not supported`);
     }
 
-    const amountCAD = amount * cachedRate.rate;
+    // DIVIDE by the rate (e.g., 1000 VND / 18620.6662 = ~0.054 CAD)
+    const amountCAD = amount / cachedRate.rate;
 
     return {
       amountCAD: parseFloat(amountCAD.toFixed(2)),
@@ -83,6 +82,7 @@ export async function convertToCAD(
     throw new Error('Failed to convert currency');
   }
 }
+
 
 export async function refreshExchangeRates(): Promise<void> {
   await fetchAndCacheRates('CAD');
