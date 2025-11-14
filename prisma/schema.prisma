@@ -1,0 +1,118 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String?
+  deviceId          String    @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  tripMemberships   TripMember[]
+  expensesCreated   Expense[]
+  auditTrailEntries AuditTrailEntry[]
+  userBalances      UserBalance[]
+}
+
+model Trip {
+  id                String    @id @default(cuid())
+  name              String
+  description       String?
+  createdBy         String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  members           TripMember[]
+  expenses          Expense[]
+  balances          UserBalance[]
+  auditTrail        AuditTrailEntry[]
+}
+
+model TripMember {
+  id        String   @id @default(cuid())
+  tripId    String
+  userId    String
+  joinedAt  DateTime @default(now())
+
+  // Relations
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+}
+
+model Expense {
+  id                String    @id @default(cuid())
+  tripId            String
+  createdBy         String
+  description       String
+  originalAmount    Float     // Amount in original currency
+  originalCurrency  String    // e.g., "USD", "EUR"
+  amountCAD         Float     // Amount in CAD after conversion
+  exchangeRate      Float     // Used for audit trail
+  createdAt         DateTime  @default(now())
+
+  // Relations
+  trip              Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  creator           User      @relation(fields: [createdBy], references: [id])
+  splits            ExpenseSplit[]
+}
+
+model ExpenseSplit {
+  id          String   @id @default(cuid())
+  expenseId   String
+  userId      String
+  amountCAD   Float    // Amount owed in CAD
+  splitType   String   // "equal", "ratio", "amount"
+  ratio       Float?   // Used for ratio splits (default null)
+
+  // Relations
+  expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+}
+
+model UserBalance {
+  id      String  @id @default(cuid())
+  tripId  String
+  userId  String
+  balance Float   // Positive = owed money, Negative = owes money
+
+  // Relations
+  trip    Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+}
+
+model AuditTrailEntry {
+  id        String   @id @default(cuid())
+  tripId    String
+  userId    String
+  action    String   // "expense_added", "expense_updated", "expense_deleted", "user_joined"
+  details   Json     // Store detailed info about the change
+  createdAt DateTime @default(now())
+
+  // Relations
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model DeviceInvite {
+  id        String   @id @default(cuid())
+  tripId    String
+  inviteUrl String   @unique
+  email     String
+  createdAt DateTime @default(now())
+  expiresAt DateTime // Can be far in the future, never really expires
+  accepted  Boolean  @default(false)
+  acceptedAt DateTime?
+}

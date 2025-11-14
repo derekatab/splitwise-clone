@@ -1,0 +1,111 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { convertToCAD } from '@/lib/utils/currencyConversion';
+import { logAuditTrailEntry } from '@/lib/utils/auditTrail';
+import { Prisma } from '@prisma/client';
+
+export async function POST(request: NextRequest) {
+  try {
+    const {
+      tripId,
+      description,
+      originalAmount,
+      originalCurrency,
+      splits,
+    } = await request.json();
+
+    const deviceId = request.cookies.get('deviceId')?.value;
+
+    if (!deviceId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({ where: { deviceId } });
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user is member of trip
+    const member = await prisma.tripMember.findUnique({
+      where: {
+        tripId_userId: {
+          tripId,
+          userId: user.id,
+        },
+      },
+    });
+
+    if (!member) {
+      return NextResponse.json(
+        { error: 'Access denied' },
+        { status: 403 }
+      );
+    }
+
+    // Convert to CAD
+    const { amountCAD, exchangeRate } = await convertToCAD(
+      originalAmount,
+      originalCurrency
+    );
+
+    // Create expense
+    const expense = await prisma.expense.create({
+      data: {
+        tripId,
+        createdBy: user.id,
+        description,
+        originalAmount,
+        originalCurrency,
+        amountCAD,
+        exchangeRate,
+      },
+    });
+
+    // Create splits
+    const createdSplits = await Promise.all(
+      splits.map((split: any) =>
+        prisma.expenseSplit.create({
+          data: {
+            expenseId: expense.id,
+            userId: split.userId,
+            amountCAD: split.amountCAD,
+            splitType: split.splitType,
+            ratio: split.ratio || null,
+          },
+        })
+      )
+    );
+
+    // Log audit trail
+    await logAuditTrailEntry(tripId, user.id, 'expense_added', {
+      expenseId: expense.id,
+      description,
+      originalAmount,
+      originalCurrency,
+      amountCAD,
+      exchangeRate,
+      splits: createdSplits.map((s) => ({
+        userId: s.userId,
+        amountCAD: s.amountCAD,
+        splitType: s.splitType,
+      })),
+    } as Prisma.JsonObject);
+
+    return NextResponse.json(
+      { expense, splits: createdSplits, success: true },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('Add expense error:', error);
+    return NextResponse.json(
+      { error: 'Failed to add expense' },
+      { status: 500 }
+    );
+  }
+}
