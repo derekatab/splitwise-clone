@@ -23,13 +23,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { deviceId } });
-    if (!user) {
+    const device = await prisma.device.findUnique({
+      where: { deviceId },
+      include: { user: true },
+    });
+
+    if (!device || !device.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    const user = device.user;
 
     // Check if user is member of trip
     const member = await prisma.tripMember.findUnique({
@@ -48,15 +54,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Refresh exchange rates if this is a new currency
+    // Refresh exchange rates if this is a new currency OR rates are stale
     if (originalCurrency !== 'CAD') {
       const existingRate = await prisma.exchangeRateCache.findUnique({
         where: { currency: originalCurrency },
       });
 
       const isStale = existingRate &&
-        (Date.now() - new Date(existingRate.updatedAt).getTime()) > 24 * 60 * 60 * 1000; // 24 hours
-
+        (Date.now() - new Date(existingRate.updatedAt).getTime()) > 24 * 60 * 60 * 1000;
 
       if (!existingRate || isStale) {
         try {

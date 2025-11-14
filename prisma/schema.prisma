@@ -1,4 +1,3 @@
-// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,15 +11,30 @@ model User {
   id                String    @id @default(cuid())
   email             String    @unique
   name              String?
-  deviceId          String    @unique
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   // Relations
+  devices           Device[]
   tripMemberships   TripMember[]
   expensesCreated   Expense[]
+  expenseSplits     ExpenseSplit[]
   auditTrailEntries AuditTrailEntry[]
   userBalances      UserBalance[]
+}
+
+model Device {
+  id        String   @id @default(cuid())
+  deviceId  String   @unique // The browser cookie value
+  userId    String
+  name      String?  // Optional: device name like "iPhone", "Chrome Desktop", etc.
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Trip {
@@ -78,6 +92,10 @@ model ExpenseSplit {
 
   // Relations
   expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, userId])
+  @@index([userId])
 }
 
 model UserBalance {
@@ -125,4 +143,3 @@ model ExchangeRateCache {
 
   @@index([updatedAt])
 }
-

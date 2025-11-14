@@ -47,11 +47,11 @@ export async function POST(request: NextRequest) {
         tripId,
         inviteUrl,
         email,
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       },
     });
 
-    // Send email via Gmail
+    // Send email
     await sendInviteEmail(email, inviteUrl, trip.name);
 
     return NextResponse.json({

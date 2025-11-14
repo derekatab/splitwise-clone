@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const { token, name, email } = await request.json();
     const deviceId = request.cookies.get('deviceId')?.value || generateDeviceId();
 
-    // Find invite - search by token
+    // Find invite
     const invite = await prisma.deviceInvite.findUnique({
       where: {
         inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL}/auth/join?token=${token}`,
@@ -23,17 +23,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create or get user
-    let user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      user = await prisma.user.create({
-        data: { email, name, deviceId },
-      });
-    } else {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { deviceId },
-      });
-    }
+    let user = await prisma.user.upsert({
+      where: { email },
+      update: { name },
+      create: { email, name },
+    });
+
+    // Create device for this login
+    await prisma.device.upsert({
+      where: { deviceId },
+      update: { lastUsedAt: new Date() },
+      create: {
+        deviceId,
+        userId: user.id,
+      },
+    });
 
     // Add user to trip
     await prisma.tripMember.upsert({

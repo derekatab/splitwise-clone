@@ -17,13 +17,19 @@ export async function GET(
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { deviceId } });
-    if (!user) {
+    const device = await prisma.device.findUnique({
+      where: { deviceId },
+      include: { user: true },
+    });
+
+    if (!device || !device.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    const user = device.user;
 
     // Check if user is member of trip
     const member = await prisma.tripMember.findUnique({

@@ -15,13 +15,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { deviceId } });
-    if (!user) {
+    const device = await prisma.device.findUnique({
+      where: { deviceId },
+      include: { user: true },
+    });
+
+    if (!device || !device.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    const user = device.user;
 
     const trip = await prisma.trip.findUnique({ where: { id: tripId } });
     if (!trip || trip.createdBy !== user.id) {

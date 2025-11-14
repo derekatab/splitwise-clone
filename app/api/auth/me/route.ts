@@ -12,18 +12,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({
+    const device = await prisma.device.findUnique({
       where: { deviceId },
+      include: { user: true },
     });
 
-    if (!user) {
+    if (!device || !device.user) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'Device or user not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ user: device.user });
   } catch (error) {
     console.error('Get user error:', error);
     return NextResponse.json(

@@ -15,11 +15,21 @@ export async function POST(request: NextRequest) {
 
     const deviceId = request.cookies.get('deviceId')?.value || generateDeviceId();
 
-    // Create or update user
-    const user = await prisma.user.upsert({
+    // Create or get user
+    let user = await prisma.user.upsert({
       where: { email },
-      update: { name, deviceId },
-      create: { email, name, deviceId },
+      update: { name },
+      create: { email, name },
+    });
+
+    // Create device if it doesn't exist
+    await prisma.device.upsert({
+      where: { deviceId },
+      update: { lastUsedAt: new Date() },
+      create: {
+        deviceId,
+        userId: user.id,
+      },
     });
 
     const response = NextResponse.json({ user, success: true });
