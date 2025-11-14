@@ -1,11 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function JoinTrip() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+    return (
+        <Suspense
+            fallback={
+                <div className="min-h-screen flex items-center justify-center px-4">
+                    <div className="text-slate-400">Loading…</div>
+                </div>
+            }
+        >
+            <JoinTripContent />
+        </Suspense>
+    );
+}
+
+function JoinTripContent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
   const [name, setName] = useState('');
