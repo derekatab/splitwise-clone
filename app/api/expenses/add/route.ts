@@ -54,7 +54,11 @@ export async function POST(request: NextRequest) {
         where: { currency: originalCurrency },
       });
 
-      if (!existingRate) {
+      const isStale = existingRate &&
+        (Date.now() - new Date(existingRate.updatedAt).getTime()) > 24 * 60 * 60 * 1000; // 24 hours
+
+
+      if (!existingRate || isStale) {
         try {
           await refreshExchangeRates();
         } catch (error) {

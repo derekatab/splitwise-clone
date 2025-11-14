@@ -21,14 +21,13 @@ interface Split {
   amount?: number;
 }
 
-const CURRENCIES = ['CAD', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CHF', 'CNY', 'INR', 'MXN'];
-
 export default function AddExpense() {
   const router = useRouter();
   const params = useParams();
   const tripId = params.tripId as string;
 
   const [members, setMembers] = useState<TripMember[]>([]);
+  const [currencies, setCurrencies] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('CAD');
@@ -40,6 +39,22 @@ export default function AddExpense() {
   const [showConversionConfirm, setShowConversionConfirm] = useState(false);
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchCurrencies = async () => {
+      try {
+        const res = await fetch('/api/currencies');
+        if (!res.ok) throw new Error('Failed to fetch currencies');
+        const data = await res.json();
+        setCurrencies(data.currencies);
+      } catch (err) {
+        console.error('Error fetching currencies:', err);
+        setCurrencies(['CAD', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CHF', 'CNY', 'INR', 'MXN']);
+      }
+    };
+
+    fetchCurrencies();
+  }, []);
 
   useEffect(() => {
     const fetchTrip = async () => {
@@ -76,37 +91,37 @@ export default function AddExpense() {
 
   useEffect(() => {
     const checkConversion = async () => {
-      if (currency !== 'CAD' && amount) {
-        try {
-          const numAmount = parseFloat(amount);
-          if (isNaN(numAmount) || numAmount <= 0) return;
+        if (currency !== 'CAD' && amount) {
+            try {
+                const numAmount = parseFloat(amount);
+                if (isNaN(numAmount) || numAmount <= 0) return;
 
-          const res = await fetch(
-            `https://v6.exchangerate-api.com/v6/${process.env.EXCHANGE_RATE_API_KEY}/latest/${currency}`
-          );
+                const res = await fetch(`/api/exchange-rate?currency=${currency}`);
 
-          if (!res.ok) throw new Error('Failed to fetch exchange rate');
+                if (!res.ok) throw new Error('Failed to fetch exchange rate');
 
-          const data = await res.json();
-          const cadRate = data.conversion_rates.CAD;
-          const converted = numAmount * cadRate;
+                const data = await res.json();
+                const cadRate = data.rate;
+                const converted = numAmount * cadRate;
 
-          setExchangeRate(cadRate);
-          setConvertedAmount(converted);
-          setShowConversionConfirm(true);
-        } catch (err) {
-          console.error('Exchange rate error:', err);
-          setError('Failed to fetch exchange rate');
-        }
-      } else {
-        setShowConversionConfirm(false);
-        setExchangeRate(null);
-        setConvertedAmount(null);
-      }
-    };
+                setExchangeRate(cadRate);
+                setConvertedAmount(converted);
+                setShowConversionConfirm(true);
+                setError(null); 
+            } catch (err) {
+                console.error('Exchange rate error:', err);
+                setError('Failed to fetch exchange rate');
+            }
+            } else {
+            setShowConversionConfirm(false);
+            setExchangeRate(null);
+            setConvertedAmount(null);
+            }
+        };
 
-    checkConversion();
-  }, [currency, amount]);
+        checkConversion();
+    }, [currency, amount]);
+
 
   const handleSplitTypeChange = (newType: SplitType) => {
     setSplitType(newType);
@@ -314,7 +329,7 @@ export default function AddExpense() {
                     onChange={(e) => handleCurrencyChange(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
                   >
-                    {CURRENCIES.map((curr) => (
+                    {currencies.map((curr) => (
                       <option key={curr} value={curr}>
                         {curr}
                       </option>
