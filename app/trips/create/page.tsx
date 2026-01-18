@@ -1,15 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getAvatarClassByColorId } from '@/lib/utils/userColors';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  colorPreference?: string;
+}
 
 export default function CreateTrip() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+        }
+      } catch (err) {
+        console.error('Error fetching user:', err);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,25 +63,35 @@ export default function CreateTrip() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
       {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-800/50 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-white">Create New Trip</h1>
-            <Link href="/" className="text-slate-400 hover:text-white transition flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </Link>
+            <h1 className="text-4xl font-bold text-white">Create New Trip</h1>
+            <div className="flex items-center gap-4">
+              <Link href="/" className="text-white/80 hover:text-white transition flex items-center gap-2 font-semibold">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </Link>
+              <Link href="/settings" className="group relative">
+                <div className={`w-12 h-12 bg-gradient-to-br ${getAvatarClassByColorId(user?.colorPreference || 'indigo')} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer`}>
+                  {user?.name?.charAt(0).toUpperCase()}
+                </div>
+                <div className="absolute bottom-full mb-2 right-0 bg-slate-800 text-slate-200 text-xs px-3 py-1 rounded whitespace-nowrap border border-slate-700 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                  Settings
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-8 border border-slate-700 backdrop-blur-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-semibold text-white mb-3">

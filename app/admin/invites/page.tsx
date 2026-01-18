@@ -237,12 +237,12 @@ export default function AdminInvites() {
   // Step 1: Key validation
   if (!keyValidated) {
     return (
-      <div className="min-h-screen">
-        <header className="border-b border-slate-700 bg-slate-800/50 backdrop-blur sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
+        <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-white">Admin Panel</h1>
-              <Link href="/" className="text-slate-400 hover:text-white transition flex items-center gap-2">
+              <h1 className="text-4xl font-bold text-white">Admin Panel</h1>
+              <Link href="/" className="text-white/80 hover:text-white transition flex items-center gap-2 font-semibold">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
@@ -253,7 +253,7 @@ export default function AdminInvites() {
         </header>
 
         <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-8 border border-slate-700 backdrop-blur-sm">
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,12 +327,12 @@ export default function AdminInvites() {
   // Step 2: Device setup
   if (!deviceSetup) {
     return (
-      <div className="min-h-screen">
-        <header className="border-b border-slate-700 bg-slate-800/50 backdrop-blur sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
+        <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-white">Admin Panel</h1>
-              <Link href="/" className="text-slate-400 hover:text-white transition flex items-center gap-2">
+              <h1 className="text-4xl font-bold text-white">Admin Panel</h1>
+              <Link href="/" className="text-white/80 hover:text-white transition flex items-center gap-2 font-semibold">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
@@ -343,7 +343,7 @@ export default function AdminInvites() {
         </header>
 
         <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-8 border border-slate-700 backdrop-blur-sm">
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -416,21 +416,21 @@ export default function AdminInvites() {
 
   // Step 3: Admin panel fully unlocked
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
       {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-800/50 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-white">Admin Panel</h1>
-              <p className="text-slate-400 text-sm mt-1">Send trip invitations</p>
+              <h1 className="text-4xl font-bold text-white">Admin Panel</h1>
+              <p className="text-indigo-100 text-sm mt-1">Send trip invitations</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-lg">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span className="text-sm text-green-300 font-medium">Authenticated</span>
               </div>
-              <Link href="/" className="text-slate-400 hover:text-white transition flex items-center gap-2">
+              <Link href="/" className="text-white/80 hover:text-white transition flex items-center gap-2 font-semibold">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
@@ -446,7 +446,7 @@ export default function AdminInvites() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Sidebar - Trip Selection */}
           <div className="lg:col-span-1">
-            <div className="bg-slate-800 rounded-2xl shadow-lg p-6 border border-slate-700 sticky top-24">
+            <div className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-6 border border-slate-700 backdrop-blur-sm sticky top-24">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <svg className="w-5 h-5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
@@ -526,7 +526,7 @@ export default function AdminInvites() {
 
             {/* Single Invite Form */}
             {activeTab === 'single' && (
-              <form onSubmit={handleSingleInvite} className="bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-700">
+              <form onSubmit={handleSingleInvite} className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-8 border border-slate-700 backdrop-blur-sm">
                 <h3 className="text-xl font-bold text-white mb-6">Send Single Invite</h3>
 
                 <div className="space-y-4">
@@ -573,7 +573,7 @@ export default function AdminInvites() {
 
             {/* Bulk Invite Form */}
             {activeTab === 'bulk' && (
-              <form onSubmit={handleBulkInvite} className="bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-700">
+              <form onSubmit={handleBulkInvite} className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-8 border border-slate-700 backdrop-blur-sm">
                 <h3 className="text-xl font-bold text-white mb-6">Send Bulk Invites</h3>
 
                 <div className="space-y-4">
@@ -622,7 +622,7 @@ export default function AdminInvites() {
 
             {/* Results Section */}
             {results.length > 0 && (
-              <div className="mt-8 bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-700">
+              <div className="mt-8 bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-8 border border-slate-700 backdrop-blur-sm">
                 <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />

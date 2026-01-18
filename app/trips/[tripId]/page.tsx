@@ -3,11 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import InfoPopover from '@/app/components/InfoPopover';
+import BreakdownModal from '@/app/components/BreakdownModal';
+import { getAvatarClassByColorId } from '@/lib/utils/userColors';
 
 interface User {
   id: string;
   name: string;
   email: string;
+  colorPreference?: string;
 }
 
 interface ExpenseSplit {
@@ -47,6 +51,23 @@ interface Balances {
   [userId: string]: number;
 }
 
+interface DetailedDebt {
+  from: string;
+  to: string;
+  amount: number;
+  breakdown: {
+    paidByTo: number;
+    paidByFrom: number;
+    netAmount: number;
+    expenses: Array<{
+      expenseId: string;
+      description?: string;
+      paidByToForFrom: number;
+      paidByFromForTo: number;
+    }>;
+  };
+}
+
 interface AuditEntry {
   id: string;
   action: string;
@@ -62,15 +83,25 @@ export default function TripDetail() {
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [balances, setBalances] = useState<Balances>({});
+  const [detailedDebts, setDetailedDebts] = useState<DetailedDebt[]>([]);
   const [auditTrail, setAuditTrail] = useState<AuditEntry[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [auditLoading, setAuditLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'expenses' | 'balances' | 'audit'>('expenses');
 
   useEffect(() => {
-    const fetchTrip = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch current user
+        const userRes = await fetch('/api/auth/me');
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setUser(userData.user);
+        }
+
+        // Fetch trip data
         const res = await fetch(`/api/trips/${tripId}`);
         if (!res.ok) {
           if (res.status === 401 || res.status === 403) {
@@ -82,6 +113,7 @@ export default function TripDetail() {
         const data = await res.json();
         setTrip(data.trip);
         setBalances(data.balances);
+        setDetailedDebts(data.detailedDebts || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -90,7 +122,7 @@ export default function TripDetail() {
     };
 
     if (tripId) {
-      fetchTrip();
+      fetchData();
     }
   }, [tripId, router]);
 
@@ -161,23 +193,33 @@ export default function TripDetail() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
       {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-800/50 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-white">{trip.name}</h1>
+              <h1 className="text-4xl font-bold text-white">{trip.name}</h1>
               {trip.description && (
-                <p className="text-slate-400 text-sm mt-1">{trip.description}</p>
+                <p className="text-indigo-100 text-sm mt-1">{trip.description}</p>
               )}
             </div>
-            <Link href="/" className="text-slate-400 hover:text-white transition flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link href="/" className="text-white/80 hover:text-white transition flex items-center gap-2 font-semibold">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </Link>
+              <Link href="/settings" className="group relative">
+                <div className={`w-12 h-12 bg-gradient-to-br ${getAvatarClassByColorId(user?.colorPreference || 'indigo')} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer`}>
+                  {user?.name?.charAt(0).toUpperCase()}
+                </div>
+                <div className="absolute bottom-full mb-2 right-0 bg-slate-800 text-slate-200 text-xs px-3 py-1 rounded whitespace-nowrap border border-slate-700 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                  Settings
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -185,7 +227,7 @@ export default function TripDetail() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Members Section */}
-        <div className="bg-slate-800 rounded-2xl shadow-lg p-6 border border-slate-700 mb-8">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-6 border border-slate-700 mb-8 backdrop-blur-sm">
           <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
             <svg className="w-5 h-5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 11a6 6 0 00-5.86 0 3.001 3.001 0 015.86 0zM17.07 11a4 4 0 00-8.14 0z" />
@@ -194,9 +236,9 @@ export default function TripDetail() {
           </h2>
           <div className="flex flex-wrap gap-3">
             {trip.members.map((member) => (
-              <div key={member.user.id} className="bg-slate-700/50 rounded-lg px-4 py-3 border border-slate-600">
+              <div key={member.user.id} className="bg-slate-700/40 rounded-lg px-4 py-3 border border-slate-600 hover:border-indigo-400/50 transition">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-linear-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                  <div className={`w-8 h-8 bg-gradient-to-br ${getAvatarClassByColorId(member.user.colorPreference || 'indigo')} rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md`}>
                     {member.user.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -269,11 +311,11 @@ export default function TripDetail() {
             </div>
 
             {trip.expenses.length === 0 ? (
-              <div className="text-center py-12 bg-slate-800 rounded-2xl border border-slate-700">
+              <div className="text-center py-12 bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl border border-slate-700">
                 <p className="text-slate-400 mb-4">No expenses yet</p>
                 <Link
                   href={`/trips/${tripId}/add-expense`}
-                  className="text-indigo-400 hover:text-indigo-300 font-semibold"
+                  className="text-indigo-300 hover:text-indigo-200 font-semibold"
                 >
                   Add your first expense
                 </Link>
@@ -281,7 +323,7 @@ export default function TripDetail() {
             ) : (
               <div className="space-y-4">
                 {trip.expenses.map((expense) => (
-                  <div key={expense.id} className="bg-slate-800 rounded-xl border border-slate-700 p-6 hover:border-slate-600 transition">
+                  <div key={expense.id} className="bg-gradient-to-br from-slate-800 to-slate-800/70 rounded-xl border border-slate-700 hover:border-indigo-400/30 transition shadow-lg p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h4 className="text-lg font-semibold text-white">{expense.description}</h4>
@@ -297,13 +339,13 @@ export default function TripDetail() {
                         </p>
                       </div>
                     </div>
-                    <div className="border-t border-slate-700 pt-4">
+                    <div className="border-t border-slate-700/50 pt-4">
                       <p className="text-sm text-slate-400 mb-3">Split among:</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {expense.splits.map((split) => {
                           const splitMember = trip.members.find((m) => m.user.id === split.userId);
                           return (
-                            <div key={split.id} className="flex justify-between items-center bg-slate-700/50 px-3 py-2 rounded">
+                            <div key={split.id} className="flex justify-between items-center bg-slate-700/30 px-3 py-2 rounded hover:bg-slate-700/50 transition">
                               <span className="text-slate-300 text-sm">{splitMember?.user.name}</span>
                               <span className="font-semibold text-indigo-300">${split.amountCAD.toFixed(2)}</span>
                             </div>
@@ -325,48 +367,60 @@ export default function TripDetail() {
         {activeTab === 'balances' && (
           <div className="space-y-6">
             <h3 className="text-2xl font-bold text-white">Settlement Summary</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {trip.members.map((member) => {
-                const balance = balances[member.user.id] || 0;
-                const isPositive = balance > 0;
 
-                return (
-                  <div
-                    key={member.user.id}
-                    className={`rounded-xl border p-6 ${
-                      isPositive
-                        ? 'bg-green-500/10 border-green-500/50'
-                        : balance < 0
-                        ? 'bg-red-500/10 border-red-500/50'
-                        : 'bg-slate-700/50 border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-linear-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {member.user.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="text-white font-semibold">{member.user.name}</p>
-                        <p className="text-slate-400 text-xs">{member.user.email}</p>
+            {detailedDebts.length === 0 ? (
+              <div className="text-center py-12 bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl border border-slate-700">
+                <p className="text-slate-400">All settled up!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {detailedDebts.map((debt, idx) => {
+                  const fromUser = trip.members.find((m) => m.user.id === debt.from);
+                  const toUser = trip.members.find((m) => m.user.id === debt.to);
+
+                  if (!fromUser || !toUser) return null;
+
+                  return (
+                    <div
+                      key={idx}
+                      className="bg-gradient-to-br from-slate-800 to-slate-800/70 rounded-xl border border-slate-700 hover:border-indigo-400/30 transition shadow-lg p-6"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-8 h-8 bg-gradient-to-br ${getAvatarClassByColorId(fromUser.user.colorPreference || 'indigo')} rounded-full flex items-center justify-center text-white text-xs font-bold`}>
+                                {fromUser.user.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-white font-semibold">{fromUser.user.name}</span>
+                            </div>
+                            <span className="text-indigo-400 font-bold">owes</span>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-8 h-8 bg-gradient-to-br ${getAvatarClassByColorId(toUser.user.colorPreference || 'indigo')} rounded-full flex items-center justify-center text-white text-xs font-bold`}>
+                                {toUser.user.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-white font-semibold">{toUser.user.name}</span>
+                            </div>
+                          </div>
+                          <p className="text-2xl font-bold text-indigo-400 mt-2">${debt.amount.toFixed(2)}</p>
+                        </div>
+
+                        <InfoPopover title="How was this calculated?">
+                          <BreakdownModal
+                            fromName={fromUser.user.name}
+                            toName={toUser.user.name}
+                            amount={debt.amount}
+                            paidByTo={debt.breakdown.paidByTo}
+                            paidByFrom={debt.breakdown.paidByFrom}
+                            expenses={debt.breakdown.expenses}
+                          />
+                        </InfoPopover>
                       </div>
                     </div>
-                    <div className="text-2xl font-bold">
-                      {isPositive ? (
-                        <span className="text-green-400">
-                          Owed ${balance.toFixed(2)}
-                        </span>
-                      ) : balance < 0 ? (
-                        <span className="text-red-400">
-                          Owes ${Math.abs(balance).toFixed(2)}
-                        </span>
-                      ) : (
-                        <span className="text-slate-300">All settled</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -376,12 +430,12 @@ export default function TripDetail() {
             <h3 className="text-2xl font-bold text-white">Audit Trail</h3>
 
             {auditLoading ? (
-              <div className="text-center py-12 bg-slate-800 rounded-2xl border border-slate-700">
+              <div className="text-center py-12 bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl border border-slate-700">
                 <div className="w-8 h-8 border-2 border-indigo-500 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-slate-400">Loading audit trail...</p>
               </div>
             ) : auditTrail.length === 0 ? (
-              <div className="text-center py-12 bg-slate-800 rounded-2xl border border-slate-700">
+              <div className="text-center py-12 bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl border border-slate-700">
                 <p className="text-slate-400">No activity yet</p>
               </div>
             ) : (
@@ -389,7 +443,7 @@ export default function TripDetail() {
                 {auditTrail.map((entry, idx) => (
                   <div
                     key={entry.id}
-                    className="bg-slate-800 rounded-xl border border-slate-700 p-6 hover:border-slate-600 transition"
+                    className="bg-gradient-to-br from-slate-800 to-slate-800/70 rounded-xl border border-slate-700 hover:border-indigo-400/30 transition shadow-lg p-6"
                   >
                     <div className="flex items-start gap-4">
                       {/* Timeline connector */}
@@ -418,7 +472,7 @@ export default function TripDetail() {
 
                         {/* Additional details */}
                         {entry.action === 'expense_added' && entry.details && (
-                          <div className="mt-3 pl-11 text-xs text-slate-400 bg-slate-700/50 rounded p-3">
+                          <div className="mt-3 pl-11 text-xs text-slate-400 bg-slate-700/30 rounded p-3 border border-slate-700/50">
                             <p>Amount: ${entry.details.amountCAD} CAD</p>
                             {entry.details.splits && (
                               <p className="mt-1">Split among {entry.details.splits.length} people</p>

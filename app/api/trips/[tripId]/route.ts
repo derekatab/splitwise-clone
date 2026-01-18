@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { calculateBalances } from '@/lib/utils/balanceCalculation';
+import { calculateBalances, calculateDetailedDebts } from '@/lib/utils/balanceCalculation';
 
 export async function GET(
   request: NextRequest,
@@ -81,7 +81,23 @@ export async function GET(
     const memberIds = trip.members.map((m) => m.userId);
     const balances = calculateBalances({ expenses, members: memberIds });
 
-    return NextResponse.json({ trip, balances });
+    // Calculate detailed debts
+    const detailedDebts = calculateDetailedDebts({ expenses, members: memberIds });
+
+    // Enrich detailed debts with expense descriptions
+    const expenseMap = new Map(trip.expenses.map((e) => [e.id, e.description]));
+    const enrichedDebts = detailedDebts.map((debt) => ({
+      ...debt,
+      breakdown: {
+        ...debt.breakdown,
+        expenses: debt.breakdown.expenses.map((exp) => ({
+          ...exp,
+          description: expenseMap.get(exp.expenseId),
+        })),
+      },
+    }));
+
+    return NextResponse.json({ trip, balances, detailedDebts: enrichedDebts });
   } catch (error) {
     console.error('Get trip error:', error);
     return NextResponse.json(

@@ -3,19 +3,21 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { getAvatarClassByColorId } from '@/lib/utils/userColors';
 
 interface Trip {
   id: string;
   name: string;
   description: string | null;
   createdAt: string;
-  members: Array<{ user: { name: string; email: string } }>;
+  members: Array<{ user: { name: string; email: string; colorPreference?: string } }>;
 }
 
 interface User {
   id: string;
   name: string;
   email: string;
+  colorPreference?: string;
 }
 
 export default function Home() {
@@ -109,23 +111,28 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
       {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-800/50 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-white">Splitwise</h1>
-              <p className="text-slate-400 text-sm mt-1">Track expenses with ease</p>
+              <h1 className="text-4xl font-bold text-white">Splitwise</h1>
+              <p className="text-indigo-100 text-sm mt-1">Track expenses with ease</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-white font-medium">{user?.name}</p>
-                <p className="text-slate-400 text-sm">{user?.email}</p>
+                <p className="text-white font-semibold">{user?.name}</p>
+                <p className="text-indigo-100 text-sm">{user?.email}</p>
               </div>
-              <div className="w-10 h-10 bg-linear-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                {user?.name?.charAt(0).toUpperCase()}
-              </div>
+              <Link href="/settings" className="group relative">
+                <div className={`w-12 h-12 bg-gradient-to-br ${getAvatarClassByColorId(user?.colorPreference || 'indigo')} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer`}>
+                  {user?.name?.charAt(0).toUpperCase()}
+                </div>
+                <div className="absolute bottom-full mb-2 right-0 bg-slate-800 text-slate-200 text-xs px-3 py-1 rounded whitespace-nowrap border border-slate-700 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                  Settings
+                </div>
+              </Link>
             </div>
           </div>
         </div>
@@ -133,29 +140,29 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-12">
+        <div className="mb-12 pb-8 border-b border-slate-700/50">
           <div>
-            <h2 className="text-4xl font-bold text-white mb-2">Your Trips</h2>
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-2">Your Trips</h2>
             <p className="text-slate-400">View and manage shared expenses across your trips</p>
           </div>
         </div>
 
         {trips.length === 0 ? (
           <div className="text-center py-20">
-            <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">No trips yet</h3>
             <p className="text-slate-400 mb-8">You haven't been invited to any trips yet. Ask the admin to send you an invite link!</p>
-            <div className="inline-block bg-slate-800 rounded-lg px-6 py-4 border border-slate-700">
+            <div className="inline-block bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-xl px-6 py-4 border border-slate-700 shadow-lg">
               <p className="text-slate-300 text-sm">
                 <strong>Admin Contact:</strong>
               </p>
               <a
                 href="mailto:derekatabayev4@gmail.com"
-                className="text-indigo-400 hover:text-indigo-300 font-semibold mt-2 inline-block transition"
+                className="text-indigo-300 hover:text-indigo-200 font-semibold mt-2 inline-block transition"
               >
                 derekatabayev4@gmail.com
               </a>
@@ -165,34 +172,34 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trips.map((trip) => (
               <Link key={trip.id} href={`/trips/${trip.id}`}>
-                <div className="group bg-slate-800 rounded-xl shadow-lg hover:shadow-2xl hover:shadow-indigo-500/20 transition transform hover:scale-105 border border-slate-700 hover:border-indigo-500 overflow-hidden cursor-pointer h-full">
+                <div className="group bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-2xl shadow-xl hover:shadow-2xl hover:shadow-indigo-500/30 transition-all duration-300 transform hover:-translate-y-1 border border-slate-700 hover:border-indigo-400/50 overflow-hidden cursor-pointer h-full backdrop-blur-sm">
                   <div className="p-6 flex flex-col h-full">
-                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-indigo-400 transition">
+                    <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-indigo-300 transition">
                       {trip.name}
                     </h3>
                     {trip.description && (
-                      <p className="text-slate-400 text-sm mb-4 grow line-clamp-2">
+                      <p className="text-slate-300 text-sm mb-4 grow line-clamp-2">
                         {trip.description}
                       </p>
                     )}
-                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-700">
+                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-700/50">
                       <div className="flex -space-x-2">
                         {trip.members?.slice(0, 3).map((member, idx) => (
                           <div
                             key={idx}
-                            className="w-8 h-8 bg-linear-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-slate-800"
+                            className={`w-8 h-8 bg-gradient-to-br ${getAvatarClassByColorId(member.user.colorPreference || 'indigo')} rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-slate-800 shadow-md`}
                             title={member.user.name}
                           >
                             {member.user.name.charAt(0).toUpperCase()}
                           </div>
                         ))}
                         {trip.members && trip.members.length > 3 && (
-                          <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-slate-300 text-xs font-bold border-2 border-slate-800">
+                          <div className="w-8 h-8 bg-slate-700/60 rounded-full flex items-center justify-center text-slate-200 text-xs font-bold border-2 border-slate-800 shadow-md">
                             +{trip.members.length - 3}
                           </div>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-400">
                         {new Date(trip.createdAt).toLocaleDateString()}
                       </p>
                     </div>

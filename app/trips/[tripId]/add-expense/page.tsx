@@ -3,6 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { getAvatarClassByColorId } from '@/lib/utils/userColors';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  colorPreference?: string;
+}
 
 interface TripMember {
   user: {
@@ -27,6 +35,7 @@ export default function AddExpense() {
   const tripId = params.tripId as string;
 
   const [members, setMembers] = useState<TripMember[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const [currencies, setCurrencies] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -57,8 +66,16 @@ export default function AddExpense() {
   }, []);
 
   useEffect(() => {
-    const fetchTrip = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch current user
+        const userRes = await fetch('/api/auth/me');
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setUser(userData.user);
+        }
+
+        // Fetch trip data
         const res = await fetch(`/api/trips/${tripId}`);
         if (!res.ok) throw new Error('Failed to fetch trip');
         const data = await res.json();
@@ -77,7 +94,7 @@ export default function AddExpense() {
       }
     };
 
-    if (tripId) fetchTrip();
+    if (tripId) fetchData();
   }, [tripId]);
 
   const handleCurrencyChange = (newCurrency: string) => {
@@ -268,21 +285,31 @@ export default function AddExpense() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
       {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-800/50 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg sticky top-0 z-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-white">Add Expense</h1>
-            <Link
-              href={`/trips/${tripId}`}
-              className="text-slate-400 hover:text-white transition flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </Link>
+            <h1 className="text-4xl font-bold text-white">Add Expense</h1>
+            <div className="flex items-center gap-4">
+              <Link
+                href={`/trips/${tripId}`}
+                className="text-white/80 hover:text-white transition flex items-center gap-2 font-semibold"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </Link>
+              <Link href="/settings" className="group relative">
+                <div className={`w-12 h-12 bg-gradient-to-br ${getAvatarClassByColorId(user?.colorPreference || 'indigo')} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer`}>
+                  {user?.name?.charAt(0).toUpperCase()}
+                </div>
+                <div className="absolute bottom-full mb-2 right-0 bg-slate-800 text-slate-200 text-xs px-3 py-1 rounded whitespace-nowrap border border-slate-700 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                  Settings
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -291,7 +318,7 @@ export default function AddExpense() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Expense Details */}
-          <div className="bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-700">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-8 border border-slate-700 backdrop-blur-sm">
             <h2 className="text-xl font-bold text-white mb-6">Expense Details</h2>
 
             <div className="space-y-6">
@@ -363,7 +390,7 @@ export default function AddExpense() {
           </div>
 
           {/* Split Type Selection */}
-          <div className="bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-700">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-8 border border-slate-700 backdrop-blur-sm">
             <h2 className="text-xl font-bold text-white mb-6">How to Split</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -390,7 +417,7 @@ export default function AddExpense() {
           </div>
 
           {/* Split Details */}
-            <div className="bg-slate-800 rounded-2xl shadow-lg p-8 border border-slate-700">
+            <div className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-8 border border-slate-700 backdrop-blur-sm">
             <h2 className="text-xl font-bold text-white mb-6">Split Details</h2>
 
             <div className="space-y-4">
@@ -401,7 +428,7 @@ export default function AddExpense() {
                 return (
                     <div
                     key={member.user.id}
-                    className="flex items-center justify-between bg-slate-700/50 p-4 rounded-lg border border-slate-600"
+                    className="flex items-center justify-between bg-slate-700/30 p-4 rounded-lg border border-slate-700/50 hover:border-indigo-400/30 transition"
                     >
                     <div className="flex-1">
                         <p className="text-white font-semibold">{member.user.name}</p>
@@ -459,7 +486,7 @@ export default function AddExpense() {
 
             {/* Unallocated Amount for Manual Split */}
             {splitType === 'amount' && amount && (
-                <div className="mt-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                <div className="mt-6 p-4 bg-slate-700/30 rounded-lg border border-slate-700/50">
                 <div className="flex justify-between items-center">
                     <p className="text-slate-300 font-semibold">Unallocated (CAD):</p>
                     <p
@@ -480,7 +507,7 @@ export default function AddExpense() {
 
             {/* Ratio validation warning */}
             {splitType === 'ratio' && (
-                <div className="mt-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                <div className="mt-6 p-4 bg-slate-700/30 rounded-lg border border-slate-700/50">
                     <p className="text-slate-300 font-semibold text-sm">Ratio Total: {getRatioTotal().toFixed(2)}/1.00</p>
                     {Math.abs(getRatioTotal() - 1) > 0.01 && (
                     <p className="text-xs text-red-400 mt-2">⚠️ Ratios must sum to exactly 1.00 to submit</p>

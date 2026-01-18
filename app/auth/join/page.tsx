@@ -8,7 +8,7 @@ export default function JoinTrip() {
     return (
         <Suspense
             fallback={
-                <div className="min-h-screen flex items-center justify-center px-4">
+                <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900 flex items-center justify-center px-4">
                     <div className="text-slate-400">Loading…</div>
                 </div>
             }
@@ -62,7 +62,7 @@ function JoinTripContent() {
 
   if (!token) {
     return (
-      <div className="flex items-center justify-center min-h-screen px-4">
+      <div className="flex items-center justify-center min-h-screen px-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
         <div className="text-center">
           <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,7 +70,7 @@ function JoinTripContent() {
             </svg>
           </div>
           <p className="text-red-400 mb-6">Invalid invite link</p>
-          <a href="/" className="text-indigo-400 hover:text-indigo-300 font-semibold transition">
+          <a href="/" className="text-indigo-300 hover:text-indigo-200 font-semibold transition">
             Go back home
           </a>
         </div>
@@ -79,9 +79,9 @@ function JoinTripContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        <div className="bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-8 border border-slate-700 backdrop-blur-sm">
           <div className="text-center mb-8">
             <div className="w-14 h-14 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
