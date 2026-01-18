@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendInviteEmail } from '@/lib/email';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,18 +28,20 @@ export async function POST(request: NextRequest) {
 
     const user = device.user;
 
-    // Create or get an invite for this user
-    const invite = await prisma.invite.upsert({
-      where: { userId: user.id },
-      update: {
-        createdAt: new Date(), // Reset the created time to now
-      },
-      create: {
-        userId: user.id,
+    // Generate invite token (same as admin invites)
+    const inviteToken = crypto.randomBytes(32).toString('hex');
+    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/join?token=${inviteToken}`;
+
+    // Create a DeviceInvite for this user's device setup
+    // Use a dummy trip (can be created just for device setup purposes)
+    await prisma.deviceInvite.create({
+      data: {
+        tripId: '', // Empty tripId since this is for device setup, not trip-specific
+        inviteUrl,
+        email: user.email,
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       },
     });
-
-    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}auth/join?inviteId=${invite.id}`;
 
     // Send invite email
     await sendInviteEmail(user.email, inviteUrl, 'Splitwise');
