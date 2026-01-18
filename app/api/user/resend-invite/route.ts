@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const inviteUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/auth/join?inviteId=${invite.id}`;
+    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}auth/join?inviteId=${invite.id}`;
 
     // Send invite email
     await sendInviteEmail(user.email, inviteUrl, 'Splitwise');
