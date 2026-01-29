@@ -20,7 +20,6 @@ model User {
   expensesCreated   Expense[]
   expenseSplits     ExpenseSplit[]
   auditTrailEntries AuditTrailEntry[]
-  userBalances      UserBalance[]
 }
 
 model Device {
@@ -48,7 +47,6 @@ model Trip {
   // Relations
   members    TripMember[]
   expenses   Expense[]
-  balances   UserBalance[]
   auditTrail AuditTrailEntry[]
 }
 
@@ -96,19 +94,6 @@ model ExpenseSplit {
 
   @@unique([expenseId, userId])
   @@index([userId])
-}
-
-model UserBalance {
-  id      String @id @default(cuid())
-  tripId  String
-  userId  String
-  balance Float // Positive = owed money, Negative = owes money
-
-  // Relations
-  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([tripId, userId])
 }
 
 model AuditTrailEntry {
