@@ -90,6 +90,36 @@ export default function TripDetail() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'expenses' | 'balances' | 'audit'>('expenses');
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
+  const [confirmingExpenseId, setConfirmingExpenseId] = useState<string | null>(null);
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    setDeletingExpenseId(expenseId);
+    try {
+      const res = await fetch(`/api/expenses/${expenseId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete expense');
+      }
+
+      // Refresh trip data
+      const tripRes = await fetch(`/api/trips/${tripId}`);
+      if (tripRes.ok) {
+        const tripData = await tripRes.json();
+        setTrip(tripData.trip);
+        setBalances(tripData.balances);
+        setDetailedDebts(tripData.detailedDebts || []);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete expense');
+    } finally {
+      setDeletingExpenseId(null);
+      setConfirmingExpenseId(null);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -323,39 +353,113 @@ export default function TripDetail() {
             ) : (
               <div className="space-y-4">
                 {trip.expenses.map((expense) => (
-                  <div key={expense.id} className="bg-gradient-to-br from-slate-800 to-slate-800/70 rounded-xl border border-slate-700 hover:border-indigo-400/30 transition shadow-lg p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="text-lg font-semibold text-white">{expense.description}</h4>
-                        <p className="text-slate-400 text-sm">
-                          Added by <span className="font-medium text-indigo-400">{expense.creator.name}</span>
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-indigo-400">${expense.amountCAD.toFixed(2)}</p>
-                        <p className="text-xs text-slate-500">
-                          {expense.originalAmount} {expense.originalCurrency}
-                          {expense.exchangeRate !== 1 && ` @ ${expense.exchangeRate.toFixed(4)}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="border-t border-slate-700/50 pt-4">
-                      <p className="text-sm text-slate-400 mb-3">Split among:</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {expense.splits.map((split) => {
-                          const splitMember = trip.members.find((m) => m.user.id === split.userId);
-                          return (
-                            <div key={split.id} className="flex justify-between items-center bg-slate-700/30 px-3 py-2 rounded hover:bg-slate-700/50 transition">
-                              <span className="text-slate-300 text-sm">{splitMember?.user.name}</span>
-                              <span className="font-semibold text-indigo-300">${split.amountCAD.toFixed(2)}</span>
+                  <div
+                    key={expense.id}
+                    className="relative h-full"
+                    style={{
+                      perspective: '1000px',
+                    }}
+                  >
+                    <div
+                      className="relative w-full transition-transform duration-300"
+                      style={{
+                        transformStyle: 'preserve-3d',
+                        transform: confirmingExpenseId === expense.id ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                      }}
+                    >
+                      {/* Front of card - Expense details */}
+                      <div
+                        className="bg-gradient-to-br from-slate-800 to-slate-800/70 rounded-xl border border-slate-700 hover:border-indigo-400/30 transition shadow-lg p-6"
+                        style={{ backfaceVisibility: 'hidden' }}
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="text-lg font-semibold text-white">{expense.description}</h4>
+                            <p className="text-slate-400 text-sm">
+                              Added by <span className="font-medium text-indigo-400">{expense.creator.name}</span>
+                            </p>
+                          </div>
+                          <div className="text-right flex flex-col items-end gap-2">
+                            <div>
+                              <p className="text-2xl font-bold text-indigo-400">${expense.amountCAD.toFixed(2)}</p>
+                              <p className="text-xs text-slate-500">
+                                {expense.originalAmount} {expense.originalCurrency}
+                                {expense.exchangeRate !== 1 && ` @ ${expense.exchangeRate.toFixed(4)}`}
+                              </p>
                             </div>
-                          );
-                        })}
+                            <button
+                              onClick={() => setConfirmingExpenseId(expense.id)}
+                              disabled={deletingExpenseId === expense.id}
+                              className="p-2 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition disabled:opacity-50 disabled:cursor-not-allowed rounded"
+                              title="Delete expense"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                        <div className="border-t border-slate-700/50 pt-4">
+                          <p className="text-sm text-slate-400 mb-3">Split among:</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {expense.splits.map((split) => {
+                              const splitMember = trip.members.find((m) => m.user.id === split.userId);
+                              return (
+                                <div key={split.id} className="flex justify-between items-center bg-slate-700/30 px-3 py-2 rounded hover:bg-slate-700/50 transition">
+                                  <span className="text-slate-300 text-sm">{splitMember?.user.name}</span>
+                                  <span className="font-semibold text-indigo-300">${split.amountCAD.toFixed(2)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-4">
+                          {new Date(expense.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+
+                      {/* Back of card - Confirmation */}
+                      <div
+                        className="absolute inset-0 bg-gradient-to-br from-red-900/40 to-red-900/20 rounded-xl border border-red-700/50 shadow-lg p-6 flex flex-col items-center justify-center"
+                        style={{
+                          backfaceVisibility: 'hidden',
+                          transform: 'rotateY(180deg)',
+                        }}
+                      >
+                        <div className="text-center">
+                          <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 4v2M7.5 3h9A3.5 3.5 0 0120.5 6.5v11A3.5 3.5 0 0117 21H7A3.5 3.5 0 013.5 17.5v-11A3.5 3.5 0 017 3h.5M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                            </svg>
+                          </div>
+                          <p className="text-white font-semibold mb-4">Are you sure?</p>
+                          <p className="text-slate-300 text-sm mb-6">This action cannot be undone.</p>
+                          <div className="flex gap-3 justify-center">
+                            <button
+                              onClick={() => setConfirmingExpenseId(null)}
+                              disabled={deletingExpenseId === expense.id}
+                              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              No
+                            </button>
+                            <button
+                              onClick={() => handleDeleteExpense(expense.id)}
+                              disabled={deletingExpenseId === expense.id}
+                              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                              {deletingExpenseId === expense.id ? (
+                                <>
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                  Deleting...
+                                </>
+                              ) : (
+                                'Yes, Delete'
+                              )}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-4">
-                      {new Date(expense.createdAt).toLocaleString()}
-                    </p>
                   </div>
                 ))}
               </div>
