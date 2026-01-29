@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
 
     // Generate invite token (same as admin invites)
     const inviteToken = crypto.randomBytes(32).toString('hex');
-    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/join?token=${inviteToken}`;
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+    const inviteUrl = `${baseUrl}/auth/join?token=${inviteToken}`;
 
     // Create a DeviceInvite for this user's device setup
     // Use a dummy trip (can be created just for device setup purposes)

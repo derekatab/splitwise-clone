@@ -21,7 +21,6 @@ model User {
   expenseSplits     ExpenseSplit[]
   auditTrailEntries AuditTrailEntry[]
   userBalances      UserBalance[]
-  invite            Invite?
 }
 
 model Device {
@@ -143,13 +142,4 @@ model ExchangeRateCache {
   updatedAt DateTime @updatedAt
 
   @@index([updatedAt])
-}
-
-model Invite {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  createdAt DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

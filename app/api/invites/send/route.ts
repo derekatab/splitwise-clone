@@ -39,7 +39,8 @@ export async function POST(request: NextRequest) {
 
     // Generate invite token
     const inviteToken = crypto.randomBytes(32).toString('hex');
-    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/join?token=${inviteToken}`;
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+    const inviteUrl = `${baseUrl}/auth/join?token=${inviteToken}`;
 
     // Store invite
     await prisma.deviceInvite.create({

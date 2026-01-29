@@ -9,10 +9,10 @@ export async function POST(request: NextRequest) {
     const deviceId = request.cookies.get('deviceId')?.value || generateDeviceId();
 
     // Find invite
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+    const inviteUrl = `${baseUrl}/auth/join?token=${token}`;
     const invite = await prisma.deviceInvite.findUnique({
-      where: {
-        inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL}/auth/join?token=${token}`,
-      },
+      where: { inviteUrl },
     });
 
     if (!invite || invite.accepted) {
