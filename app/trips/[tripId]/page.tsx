@@ -470,7 +470,60 @@ export default function TripDetail() {
         {/* Balances Tab */}
         {activeTab === 'balances' && (
           <div className="space-y-6">
-            <h3 className="text-2xl font-bold text-white">Settlement Summary</h3>
+            <div>
+              <h3 className="text-2xl font-bold text-white mb-4">Settlement Summary</h3>
+
+              {/* User Balances Overview */}
+              <div className="bg-gradient-to-br from-slate-800 to-slate-800/70 rounded-xl border border-slate-700 p-6 mb-6">
+                <p className="text-sm font-semibold text-slate-300 mb-4">Member Balances</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {trip.members.map((member) => {
+                    const balance = balances[member.user.id] || 0;
+                    const isCreditor = balance > 0;
+                    const isDebtor = balance < 0;
+                    const isEven = balance === 0;
+
+                    return (
+                      <div
+                        key={member.user.id}
+                        className={`rounded-lg px-4 py-3 border ${
+                          isCreditor
+                            ? 'bg-emerald-600/15 border-emerald-500/40'
+                            : isDebtor
+                            ? 'bg-orange-600/15 border-orange-500/40'
+                            : 'bg-slate-700/30 border-slate-600/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-8 h-8 bg-gradient-to-br ${getAvatarClassByColorId(
+                                member.user.colorPreference || 'indigo'
+                              )} rounded-full flex items-center justify-center text-white text-xs font-bold`}
+                            >
+                              {member.user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-white font-semibold text-sm">{member.user.name}</p>
+                              <p className="text-xs text-slate-400">
+                                {isCreditor ? 'Creditor' : isDebtor ? 'Debtor' : 'Even'}
+                              </p>
+                            </div>
+                          </div>
+                          <p
+                            className={`font-bold text-sm ${
+                              isCreditor ? 'text-emerald-300' : isDebtor ? 'text-orange-300' : 'text-slate-400'
+                            }`}
+                          >
+                            {isCreditor ? '+' : ''}{isEven ? '$0.00' : `$${Math.abs(balance).toFixed(2)}`}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
 
             {detailedDebts.length === 0 ? (
               <div className="text-center py-12 bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl border border-slate-700">

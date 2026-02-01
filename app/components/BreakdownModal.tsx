@@ -42,30 +42,36 @@ export default function BreakdownModal({
     to: expenses.filter((e) => e.paidByToForFrom > 0),
   };
 
+  const isDirectCalculation = (paidByTo > 0 || paidByFrom > 0) && Math.abs((paidByTo - paidByFrom) - amount) < 0.01;
+
   return (
     <div className="space-y-4">
-      <div className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/50">
-        <div className="grid grid-cols-2 gap-4 text-xs">
-          <div>
-            <p className="text-slate-400 mb-1">{toName} paid</p>
-            <p className="text-indigo-300 font-semibold text-sm">${paidByTo.toFixed(2)}</p>
-            <p className="text-slate-500 text-xs mt-1">for {fromName}</p>
-          </div>
-          <div>
-            <p className="text-slate-400 mb-1">{fromName} paid</p>
-            <p className="text-indigo-300 font-semibold text-sm">${paidByFrom.toFixed(2)}</p>
-            <p className="text-slate-500 text-xs mt-1">for {toName}</p>
+      {isDirectCalculation && (
+        <div className="bg-indigo-600/15 rounded-lg p-3 border border-indigo-500/40">
+          <p className="text-xs font-semibold text-indigo-300 mb-2">Calculation Details</p>
+          <div className="space-y-2 text-xs">
+            <div className="bg-slate-700/30 p-2 rounded border border-slate-600/50">
+              <p className="text-slate-400 mb-1">{toName} paid for {fromName}:</p>
+              <p className="text-indigo-300 font-semibold">${paidByTo.toFixed(2)}</p>
+            </div>
+            <div className="bg-slate-700/30 p-2 rounded border border-slate-600/50">
+              <p className="text-slate-400 mb-1">{fromName} paid for {toName}:</p>
+              <p className="text-indigo-300 font-semibold">${paidByFrom.toFixed(2)}</p>
+            </div>
+            <div className="bg-slate-700/40 p-2 rounded border border-slate-600">
+              <p className="text-slate-300 font-semibold text-xs mb-1">Net Settlement:</p>
+              <p className="text-slate-300 text-xs font-mono">
+                ${paidByTo.toFixed(2)} − ${paidByFrom.toFixed(2)} = <span className="text-indigo-300 font-semibold">${amount.toFixed(2)}</span>
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="bg-indigo-600/20 rounded-lg p-3 border border-indigo-500/50">
-        <p className="text-xs text-slate-400 mb-1">Net Amount</p>
-        <p className="text-lg font-bold text-indigo-400">
+      <div className="bg-emerald-600/15 rounded-lg p-3 border border-emerald-500/40">
+        <p className="text-xs font-semibold text-emerald-300 mb-1">✓ Settlement Amount</p>
+        <p className="text-lg font-bold text-emerald-300">
           {fromName} owes {toName} ${amount.toFixed(2)}
-        </p>
-        <p className="text-xs text-slate-400 mt-2">
-          Calculated as: ${paidByTo.toFixed(2)} - ${paidByFrom.toFixed(2)} = ${amount.toFixed(2)}
         </p>
       </div>
 
@@ -112,28 +118,53 @@ export default function BreakdownModal({
           </div>
 
           <p className="text-xs font-semibold text-slate-300 mb-2">
-            Expenses included: ({filteredExpenses.length})
+            Transactions included: ({filteredExpenses.length})
           </p>
+
           <div className="space-y-2">
-            {filteredExpenses.map((exp, idx) => (
-              <div key={idx} className="bg-slate-700/20 rounded p-2 text-xs border border-slate-600/30">
-                <p className="text-slate-300 font-medium">
-                  {exp.description || 'Unnamed expense'}
-                </p>
-                {exp.paidByToForFrom > 0 && (
-                  <p className="text-slate-400 mt-1">
-                    <span className="font-medium text-indigo-300">{toName}</span> paid $
-                    {exp.paidByToForFrom.toFixed(2)} for <span className="font-medium text-indigo-300">{fromName}</span>
-                  </p>
-                )}
-                {exp.paidByFromForTo > 0 && (
-                  <p className="text-slate-400 mt-1">
-                    <span className="font-medium text-indigo-300">{fromName}</span> paid $
-                    {exp.paidByFromForTo.toFixed(2)} for <span className="font-medium text-indigo-300">{toName}</span>
-                  </p>
-                )}
-              </div>
-            ))}
+            {filteredExpenses.map((exp, idx) => {
+              const directTransaction = exp.paidByToForFrom > 0 || exp.paidByFromForTo > 0;
+              const amountUsedInSettlement = exp.paidByToForFrom + exp.paidByFromForTo;
+
+              return (
+                <div key={idx} className={`rounded p-2 text-xs border ${
+                  directTransaction
+                    ? 'bg-slate-700/20 border-slate-600/30'
+                    : 'bg-slate-700/10 border-slate-600/20 opacity-85'
+                }`}>
+                  <div className="flex justify-between items-start">
+                    <p className="text-slate-300 font-medium flex-1">
+                      {exp.description || 'Unnamed expense'}
+                    </p>
+                    {!directTransaction && (
+                      <span className="text-xs bg-slate-600/50 text-slate-300 px-2 py-0.5 rounded ml-2 flex-shrink-0">
+                        indirect
+                      </span>
+                    )}
+                  </div>
+
+                  {exp.paidByToForFrom > 0 && (
+                    <p className="text-slate-400 mt-1">
+                      <span className="font-medium text-indigo-300">{toName}</span> paid $
+                      {exp.paidByToForFrom.toFixed(2)} for <span className="font-medium text-indigo-300">{fromName}</span>
+                    </p>
+                  )}
+
+                  {exp.paidByFromForTo > 0 && (
+                    <p className="text-slate-400 mt-1">
+                      <span className="font-medium text-indigo-300">{fromName}</span> paid $
+                      {exp.paidByFromForTo.toFixed(2)} for <span className="font-medium text-indigo-300">{toName}</span>
+                    </p>
+                  )}
+
+                  {!directTransaction && (
+                    <p className="text-slate-500 text-xs mt-2 italic">
+                      Part of settlement through optimization—no direct payment between {fromName} and {toName}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

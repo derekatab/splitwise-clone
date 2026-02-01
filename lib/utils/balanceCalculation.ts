@@ -46,11 +46,9 @@ export function calculateBalances(input: BalanceCalculationInput): {
     // Add amount to payer (they paid it, so they're owed)
     balances[paidBy] = (balances[paidBy] || 0) + totalAmount;
 
-    // Subtract amounts from those who owe
+    // Subtract amounts from those who owe (including the payer's own share)
     expense.splits.forEach((split) => {
-      if (split.userId !== paidBy) {
-        balances[split.userId] = (balances[split.userId] || 0) - split.amountCAD;
-      }
+      balances[split.userId] = (balances[split.userId] || 0) - split.amountCAD;
     });
   });
 
@@ -201,6 +199,151 @@ export function calculateDetailedDebts(input: BalanceCalculationInput): Detailed
       }
     }
   });
+
+  return detailedDebts;
+}
+
+/**
+ * Calculates optimized debts using net balance matching instead of pairwise netting.
+ * This produces the minimum number of transactions needed to settle all debts.
+ *
+ * Instead of showing "A owes B, B owes C, C owes A" (3 transactions),
+ * it matches creditors with debtors to minimize transactions.
+ */
+export function calculateOptimizedDetailedDebts(input: BalanceCalculationInput): DetailedDebt[] {
+  // First, calculate net balances
+  const balances = calculateBalances(input);
+
+  // Separate into creditors (positive balance) and debtors (negative balance)
+  const creditors: { userId: string; amount: number }[] = [];
+  const debtors: { userId: string; amount: number }[] = [];
+
+  Object.entries(balances).forEach(([userId, balance]) => {
+    if (balance > 0) {
+      creditors.push({ userId, amount: balance });
+    } else if (balance < 0) {
+      debtors.push({ userId, amount: Math.abs(balance) });
+    }
+  });
+
+  // Get pairwise payments to build breakdown details
+  const pairwisePayments: {
+    [key: string]: {
+      paidByA: number;
+      paidByB: number;
+      expensesA: Array<{ expenseId: string; amount: number }>;
+      expensesB: Array<{ expenseId: string; amount: number }>;
+    };
+  } = {};
+
+  input.expenses.forEach((expense) => {
+    const paidBy = expense.createdBy;
+
+    expense.splits.forEach((split) => {
+      const owes = split.userId;
+      const amount = split.amountCAD;
+
+      if (owes !== paidBy) {
+        const pair = [paidBy, owes].sort();
+        const key = pair.join('|');
+
+        if (!pairwisePayments[key]) {
+          pairwisePayments[key] = {
+            paidByA: 0,
+            paidByB: 0,
+            expensesA: [],
+            expensesB: [],
+          };
+        }
+
+        if (pair[0] === paidBy) {
+          pairwisePayments[key].paidByA += amount;
+          pairwisePayments[key].expensesA.push({ expenseId: expense.id, amount });
+        } else {
+          pairwisePayments[key].paidByB += amount;
+          pairwisePayments[key].expensesB.push({ expenseId: expense.id, amount });
+        }
+      }
+    });
+  });
+
+  // Match creditors with debtors
+  const detailedDebts: DetailedDebt[] = [];
+  let creditorIdx = 0;
+  let debtorIdx = 0;
+
+  while (creditorIdx < creditors.length && debtorIdx < debtors.length) {
+    const creditor = creditors[creditorIdx];
+    const debtor = debtors[debtorIdx];
+
+    // Amount that the debtor will pay to the creditor
+    const settlementAmount = Math.min(creditor.amount, debtor.amount);
+
+    // Get breakdown by looking at pairwise payments
+    const pair = [debtor.userId, creditor.userId].sort();
+    const key = pair.join('|');
+    const pairPayment = pairwisePayments[key];
+
+    let expenses: Array<{
+      expenseId: string;
+      description?: string;
+      paidByToForFrom: number;
+      paidByFromForTo: number;
+    }> = [];
+
+    if (pairPayment) {
+      // Build expenses list for this pair
+      pairPayment.expensesA.forEach((exp) => {
+        expenses.push({
+          expenseId: exp.expenseId,
+          paidByToForFrom: exp.amount,
+          paidByFromForTo: 0,
+        });
+      });
+
+      pairPayment.expensesB.forEach((exp) => {
+        expenses.push({
+          expenseId: exp.expenseId,
+          paidByToForFrom: 0,
+          paidByFromForTo: exp.amount,
+        });
+      });
+    }
+
+    // Determine who is "to" (creditor) and who is "from" (debtor)
+    let paidByTo = 0;
+    let paidByFrom = 0;
+
+    if (pairPayment) {
+      if (pair[0] === creditor.userId) {
+        paidByTo = pairPayment.paidByA;
+        paidByFrom = pairPayment.paidByB;
+      } else {
+        paidByTo = pairPayment.paidByB;
+        paidByFrom = pairPayment.paidByA;
+      }
+    }
+
+    detailedDebts.push({
+      from: debtor.userId,
+      to: creditor.userId,
+      amount: settlementAmount,
+      breakdown: {
+        paidByTo,
+        paidByFrom,
+        netAmount: settlementAmount,
+        expenses,
+      },
+    });
+
+    // Update balances
+    creditor.amount -= settlementAmount;
+    debtor.amount -= settlementAmount;
+
+    // Move to next creditor or debtor
+    if (creditor.amount === 0) creditorIdx++;
+    if (debtor.amount === 0) debtorIdx++;
+  }
 
   return detailedDebts;
 }

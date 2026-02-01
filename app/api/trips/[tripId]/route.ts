@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { calculateBalances, calculateDetailedDebts } from '@/lib/utils/balanceCalculation';
+import { calculateBalances, calculateOptimizedDetailedDebts } from '@/lib/utils/balanceCalculation';
 
 export async function GET(
   request: NextRequest,
@@ -81,8 +81,8 @@ export async function GET(
     const memberIds = trip.members.map((m) => m.userId);
     const balances = calculateBalances({ expenses, members: memberIds });
 
-    // Calculate detailed debts
-    const detailedDebts = calculateDetailedDebts({ expenses, members: memberIds });
+    // Calculate detailed debts (optimized to show minimum transactions)
+    const detailedDebts = calculateOptimizedDetailedDebts({ expenses, members: memberIds });
 
     // Enrich detailed debts with expense descriptions
     const expenseMap = new Map(trip.expenses.map((e) => [e.id, e.description]));
