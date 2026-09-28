@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 export default function JoinTrip() {
     return (
@@ -18,20 +19,60 @@ export default function JoinTrip() {
     );
 }
 
+interface InviteInfo {
+  email: string | null;
+  name: string | null;
+  tripName: string | null;
+  accepted: boolean;
+}
+
 function JoinTripContent() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The invite decides which account the person joins as; the email is shown but not editable.
+  const emailLocked = Boolean(invite?.email);
 
   useEffect(() => {
     if (!token) {
       setError('Invalid invite link');
+      return;
     }
+
+    let cancelled = false;
+    const lookupInvite = async () => {
+      try {
+        const res = await fetch(`/api/invites/lookup?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+        if (cancelled) return;
+
+        if (!res.ok) {
+          setError(data.error || 'Invalid invite link');
+          return;
+        }
+
+        setInvite(data);
+        if (data.email) setEmail(data.email);
+        if (data.name) setName(data.name);
+        if (data.accepted) {
+          setError('This invite link has already been used. Ask the trip admin to send a new one.');
+        }
+      } catch (err) {
+        console.error('Invite lookup failed:', err);
+      }
+    };
+
+    lookupInvite();
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,9 +111,9 @@ function JoinTripContent() {
             </svg>
           </div>
           <p className="text-red-400 mb-6">Invalid invite link</p>
-          <a href="/" className="text-indigo-300 hover:text-indigo-200 font-semibold transition">
+          <Link href="/" className="text-indigo-300 hover:text-indigo-200 font-semibold transition">
             Go back home
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -90,7 +131,9 @@ function JoinTripContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v4M10 8h4" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Join Trip</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">
+              {invite?.tripName ? `Join ${invite.tripName}` : 'Join Trip'}
+            </h1>
             <p className="text-slate-400">Set up your profile to get started</p>
           </div>
 
@@ -118,9 +161,17 @@ function JoinTripContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none"
+                readOnly={emailLocked}
+                className={`w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition outline-none ${
+                  emailLocked ? 'opacity-75 cursor-not-allowed' : ''
+                }`}
                 required
               />
+              {emailLocked && (
+                <p className="text-xs text-slate-500 mt-2">
+                  This invite was sent to {invite?.email}. Your account will use this address.
+                </p>
+              )}
             </div>
 
             {error && (

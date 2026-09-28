@@ -8,7 +8,7 @@ datasource db {
 
 model User {
   id              String   @id @default(cuid())
-  email           String   @unique
+  email           String?  @unique // Optional: members added by a trip admin may not have an email yet
   name            String?
   colorPreference String?  @default("indigo") // User's avatar color preference
   createdAt       DateTime @default(now())

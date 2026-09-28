@@ -432,7 +432,7 @@ export default function AddExpense() {
                     >
                     <div className="flex-1">
                         <p className="text-white font-semibold">{member.user.name}</p>
-                        <p className="text-xs text-slate-400">{member.user.email}</p>
+                        <p className="text-xs text-slate-400">{member.user.email || 'No email yet'}</p>
                     </div>
 
                     {splitType === 'equal' && (

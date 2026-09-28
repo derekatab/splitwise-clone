@@ -5,13 +5,15 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import InfoPopover from '@/app/components/InfoPopover';
 import BreakdownModal from '@/app/components/BreakdownModal';
+import TripMembers from '@/app/components/TripMembers';
 import { getAvatarClassByColorId } from '@/lib/utils/userColors';
 
 interface User {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   colorPreference?: string;
+  _count?: { devices: number };
 }
 
 interface ExpenseSplit {
@@ -42,6 +44,7 @@ interface Trip {
   id: string;
   name: string;
   description: string | null;
+  createdBy: string;
   createdAt: string;
   members: TripMember[];
   expenses: Expense[];
@@ -92,6 +95,16 @@ export default function TripDetail() {
   const [activeTab, setActiveTab] = useState<'expenses' | 'balances' | 'audit'>('expenses');
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
   const [confirmingExpenseId, setConfirmingExpenseId] = useState<string | null>(null);
+
+  const refreshTrip = async () => {
+    const tripRes = await fetch(`/api/trips/${tripId}`);
+    if (tripRes.ok) {
+      const tripData = await tripRes.json();
+      setTrip(tripData.trip);
+      setBalances(tripData.balances);
+      setDetailedDebts(tripData.detailedDebts || []);
+    }
+  };
 
   const handleDeleteExpense = async (expenseId: string) => {
     setDeletingExpenseId(expenseId);
@@ -193,6 +206,12 @@ export default function TripDetail() {
         return `${user} updated an expense`;
       case 'expense_deleted':
         return `${user} deleted an expense`;
+      case 'member_added':
+        return `${user} added ${details?.name || 'a member'} to the trip${details?.email ? ` and invited ${details.email}` : ''}`;
+      case 'member_updated':
+        return `${user} updated member ${details?.name || ''}`.trim();
+      case 'member_removed':
+        return `${user} removed ${details?.name || 'a member'} from the trip`;
       default:
         return `${user} performed action: ${entry.action}`;
     }
@@ -257,29 +276,13 @@ export default function TripDetail() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Members Section */}
-        <div className="bg-gradient-to-br from-slate-800 to-slate-800/60 rounded-2xl shadow-xl p-6 border border-slate-700 mb-8 backdrop-blur-sm">
-          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 11a6 6 0 00-5.86 0 3.001 3.001 0 015.86 0zM17.07 11a4 4 0 00-8.14 0z" />
-            </svg>
-            Trip Members ({trip.members.length})
-          </h2>
-          <div className="flex flex-wrap gap-3">
-            {trip.members.map((member) => (
-              <div key={member.user.id} className="bg-slate-700/40 rounded-lg px-4 py-3 border border-slate-600 hover:border-indigo-400/50 transition">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 bg-gradient-to-br ${getAvatarClassByColorId(member.user.colorPreference || 'indigo')} rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md`}>
-                    {member.user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold text-sm">{member.user.name}</p>
-                    <p className="text-slate-400 text-xs">{member.user.email}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <TripMembers
+          tripId={tripId}
+          members={trip.members}
+          adminId={trip.createdBy}
+          currentUserId={user?.id ?? null}
+          onMembersChanged={refreshTrip}
+        />
 
         {/* Tabs */}
         <div className="flex gap-4 mb-8 border-b border-slate-700 overflow-x-auto">

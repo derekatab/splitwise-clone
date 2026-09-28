@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendInviteEmail } from '@/lib/email';
+import { buildInviteUrl } from '@/lib/invites';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
@@ -28,10 +29,16 @@ export async function POST(request: NextRequest) {
 
     const user = device.user;
 
+    if (!user.email) {
+      return NextResponse.json(
+        { error: 'Your account has no email address yet, so an invite cannot be sent' },
+        { status: 400 }
+      );
+    }
+
     // Generate invite token (same as admin invites)
     const inviteToken = crypto.randomBytes(32).toString('hex');
-    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
-    const inviteUrl = `${baseUrl}/auth/join?token=${inviteToken}`;
+    const inviteUrl = buildInviteUrl(inviteToken);
 
     // Create a DeviceInvite for this user's device setup
     // Use a dummy trip (can be created just for device setup purposes)

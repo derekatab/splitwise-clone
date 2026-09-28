@@ -52,7 +52,7 @@ export async function GET(
     const trip = await prisma.trip.findUnique({
       where: { id: tripId },
       include: {
-        members: { include: { user: true } },
+        members: { include: { user: { include: { _count: { select: { devices: true } } } } } },
         expenses: {
           include: {
             creator: true,
